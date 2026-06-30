@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adk-mongodb-memory"
+version = "0.1.0"
+description = "MongoDB Atlas Vector Search long-term memory for Google ADK agents, with Voyage AI embeddings."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Fabian Valle" }]
+keywords = [
+    "google-adk",
+    "mongodb",
+    "atlas",
+    "vector-search",
+    "voyage-ai",
+    "embeddings",
+    "agent-memory",
+    "rag",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Runtime dependencies. Lower bounds keep the project forward-compatible; pin
+# exactly (==) downstream if you need reproducible builds.
+dependencies = [
+    # Google Agent Development Kit - BaseMemoryService, agents, runner, tools.
+    "google-adk>=2.3.0",
+    # Native AsyncMongoClient + programmatic search-index management need 4.13+.
+    "pymongo>=4.13,<5.0",
+    # google.genai Content/Part types used by the service (and Gemini agents).
+    "google-genai>=2.10.0",
+    # Voyage AI embeddings (the default, retrieval-tuned embedder).
+    "voyageai>=0.3.4",
+    # Loads configuration from a local .env file in the examples.
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+# Client-Side Field-Level Encryption (CSFLE). Installs libmongocrypt
+# (pymongocrypt) so explicit and automatic encryption work. See examples/05_csfle.py.
+encryption = ["pymongo[encryption]>=4.13,<5.0"]
+# Tooling for local development.
+dev = ["ruff>=0.1"]
+
+[project.urls]
+Homepage = "https://github.com/fabian-valle/adk-mdb-memory"
+"ADK Memory docs" = "https://adk.dev/sessions/memory/"
+"Atlas Vector Search" = "https://www.mongodb.com/docs/atlas/atlas-vector-search/"
+
+[tool.setuptools]
+packages = ["adk_mongodb_memory"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# A coherent baseline: pycodestyle (E), pyflakes (F), isort (I), flake8-bugbear (B).
+# The codebase intentionally uses typing.Optional/Union with `from __future__
+# import annotations` and TYPE_CHECKING-guarded imports, so pyupgrade (UP) is
+# left out to keep that style consistent.
+select = ["E", "F", "I", "B"]
+
+[tool.ruff.lint.isort]
+# The package and the examples' shared helper are first-party, so third-party
+# imports (e.g. pymongo) sort above them.
+known-first-party = ["adk_mongodb_memory", "_shared"]

@@ -1,0 +1,6 @@
+# Dependencies for adk-mongodb-memory are declared in pyproject.toml.
+# This file installs the project (editable) with all runtime deps plus the
+# CSFLE [encryption] extra (libmongocrypt), so every example runs.
+#
+# Equivalent to:  pip install -e ".[encryption]"
+-e .[encryption]
