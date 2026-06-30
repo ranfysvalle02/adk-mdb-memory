@@ -231,6 +231,13 @@ async def my_embedder(text: str, input_type: str) -> list[float]:
     return await my_model.embed(text)   # ignore input_type if your model doesn't care
 ```
 
+That `my_embedder` shape is all any provider needs. Drop in **Google Vertex AI**,
+**OpenAI**, **Cohere**, or a fully self-hosted model behind the same two-argument
+callable — and because the same `_maybe_await` logic (section 9) handles sync *and*
+async callables transparently, you write zero event-loop or thread-pool glue either
+way. Voyage is the default here because it's excellent at retrieval, not because
+anything is bolted to it: the "zero cloud-lock" thesis holds for the embedder, too.
+
 **Out of the box:** the provider's embedding choices. **Added:** your model, your
 dimensions, with retrieval-intent baked into every call.
 
@@ -383,9 +390,10 @@ async def _maybe_await(fn, *args):
 
 Async callables — including *callable objects* whose `__call__` is `async def`,
 like `VoyageEmbedder` wrapping `voyageai.AsyncClient` — are awaited directly so the
-underlying HTTP client stays bound to one loop. Genuinely synchronous embedders
-are off-loaded with `asyncio.to_thread` so a blocking HTTP call never stalls the
-event loop. Detecting the callable-object case correctly (inspecting
+underlying HTTP client stays bound to one loop. Genuinely synchronous embedders —
+say, a Google Vertex AI or OpenAI client called through its blocking SDK — are
+off-loaded with `asyncio.to_thread` so a blocking HTTP call never stalls the event
+loop. Detecting the callable-object case correctly (inspecting
 `type(fn).__call__`, not just `iscoroutinefunction(fn)`) is the kind of sharp edge
 a thin, owned wrapper can get exactly right.
 
@@ -402,6 +410,15 @@ Managed services hide the dials. Here they're yours:
   index, the Atlas Vector Search index (via `create_search_index` +
   `SearchIndexModel`), and the optional TTL index — idempotently (it ignores
   "already exists"). It can even wait until the vector index reports queryable.
+
+  > **Provision once, not per invocation.** Atlas builds a vector index
+  > *asynchronously* — seconds to minutes depending on cluster tier and data size.
+  > Treat `setup_indexes(wait_for_vector_index=True)` as a one-time bootstrap step
+  > (a deploy hook, migration, or first-boot guard), **not** something every
+  > serverless cold start runs. It's idempotent, so it's safe — but blocking each
+  > Lambda invocation on a readiness poll (up to `timeout_seconds`, default 180s)
+  > for an index that already exists is a needless latency tax. In hot paths,
+  > provision the index out of band and let the function assume it's ready.
 * **Recall vs. latency.** `numCandidates = default_search_limit *
   num_candidates_multiplier` (default `5 * 20 = 100`), following MongoDB's "≥20×
   the limit" guidance — higher when a selective tenant pre-filter is applied.
